@@ -71,7 +71,7 @@ class ConfigEditor(QDialog):
         except ValueError as e:
             from aqt.utils import showInfo
             showInfo("Invalid configuration, restoring previous config: " +
-                     repr(e))
+                     str(e))
             return
         if not isinstance(new_conf, dict):
             from aqt.utils import showInfo

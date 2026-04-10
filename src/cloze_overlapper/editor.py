@@ -12,7 +12,7 @@ Additions to Anki's note editor
 import os
 import re
 
-from aqt.qt import QShortcut, QKeySequence, QIcon, Qt
+from aqt.qt import QShortcut, QKeySequence, Qt
 from aqt import mw, gui_hooks
 from aqt.editor import Editor
 from aqt.addcards import AddCards

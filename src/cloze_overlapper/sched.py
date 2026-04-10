@@ -60,8 +60,10 @@ def initializeScheduler():
                 return original(self, card)
             sched_cls._burySiblings = patched
         else:
-            print("Cloze Overlapper: V3 scheduler detected. "
-                  "Configure sibling burying via deck options.")
+            from aqt.utils import tooltip
+            tooltip("Cloze Overlapper: V3 scheduler detected. "
+                    "Configure sibling burying via deck options.")
     except Exception as e:
-        print("Cloze Overlapper: Could not patch scheduler: %s" % str(e))
-        print("Configure sibling burying via Anki's deck options instead.")
+        from aqt.utils import tooltip
+        tooltip("Cloze Overlapper: Could not patch scheduler: %s. "
+                "Configure sibling burying via Anki's deck options instead." % str(e))

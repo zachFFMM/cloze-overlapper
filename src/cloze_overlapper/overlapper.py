@@ -68,7 +68,7 @@ class ClozeOverlapper(object):
 
         setopts = parseNoteSettings(self.note[self.flds["st"]])
         maxfields = self.getMaxFields(self.model, self.flds["tx"])
-        if not maxfields:
+        if maxfields is False:
             return False, None
 
         gen = ClozeGenerator(setopts, maxfields)
@@ -108,11 +108,15 @@ class ClozeOverlapper(object):
 
     def getLineItems(self, html):
         """Detects HTML list markups and returns a list of plaintext lines"""
-        soup = BeautifulSoup(html, "html.parser")
-        text = soup.getText("\n")
-        if soup.findAll("ol"):
+        try:
+            soup = BeautifulSoup(html, "html.parser")
+            text = soup.getText("\n")
+        except Exception:
+            soup = None
+            text = html
+        if soup and soup.findAll("ol"):
             self.markup = "ol"
-        elif soup.findAll("ul"):
+        elif soup and soup.findAll("ul"):
             self.markup = "ul"
         else:
             self.markup = "div"
@@ -155,7 +159,7 @@ class ClozeOverlapper(object):
         for idx, field in enumerate(fields):
             name = self.flds["tx"] + str(idx+1)
             if name not in note:
-                print("Missing field. Should never happen.")
+                warnUser("Warning", "Missing field '%s' in note" % name)
                 continue
             note[name] = field if custom else self.processField(field)
 

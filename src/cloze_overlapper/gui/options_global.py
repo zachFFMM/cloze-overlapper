@@ -62,7 +62,9 @@ class OlcOptionsGlobal(QDialog):
         reset_req = False
         try:
             reset_req = self.renameFields()
-        except Exception:
+        except (KeyError, AttributeError, IndexError) as e:
+            from aqt.utils import showInfo
+            showInfo("Could not rename fields: %s" % str(e))
             return
         before = self.f.sb_before.value()
         after = self.f.sb_after.value()
@@ -72,7 +74,7 @@ class OlcOptionsGlobal(QDialog):
         config["synced"]['dflts'] = [before, prompt, after]
         config["synced"]['sched'] = [i.isChecked() for i in self.fsched]
         config["synced"]["dflto"] = [i.isChecked() for i in self.fopts]
-        config["synced"]["olmdls"] = self.f.le_model.text().split(",")
+        config["synced"]["olmdls"] = [n.strip() for n in self.f.le_model.text().split(",") if n.strip()]
         config.save(reset=reset_req)
         self.close()
 

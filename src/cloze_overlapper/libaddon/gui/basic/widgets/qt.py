@@ -48,7 +48,7 @@ except ImportError:
     sip.setapi('QUrl', 2)
     try:
         sip.setdestroyonexit(False)
-    except:  # noqa: E722
+    except AttributeError:
         # missing in older versions
         pass
     from PyQt4.QtCore import *  # noqa: F401
