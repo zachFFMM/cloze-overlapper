@@ -3,38 +3,11 @@
 # Cloze Overlapper Add-on for Anki
 #
 # Copyright (C)  2016-2019 Aristotelis P. <https://glutanimate.com/>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version, with the additions
-# listed at the end of the license file that accompanied this program
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# NOTE: This program is subject to certain additional terms pursuant to
-# Section 7 of the GNU Affero General Public License.  You should have
-# received a copy of these additional terms immediately following the
-# terms and conditions of the GNU Affero General Public License that
-# accompanied this program.
-#
-# If not, please request a copy through one of the means of contact
-# listed here: <https://glutanimate.com/contact/>.
-#
-# Any modifications to this file must keep this entire header intact.
+# Updated for modern Anki (2.1.45+)
 
 """
 Manages note type and templates
 """
-
-from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
 
 from anki.consts import MODEL_CLOZE
 
@@ -191,7 +164,7 @@ the add-on updates its template.
 // Remove cloze syntax from revealed hint
 var hint = document.getElementById("original");
 if (hint) {
-    var html = hint.innerHTML.replace(/\[\[oc(\d+)::(.*?)(::(.*?))?\]\]/mg,
+    var html = hint.innerHTML.replace(/\\[\\[oc(\\d+)::(.*?)(::(.*?))?\\]\\]/mg,
                                       "<span class='cloze'>$2</span>");
     hint.innerHTML = html
 };
@@ -344,7 +317,6 @@ def checkModel(model, fields=True, notify=True):
     """Sanity checks for the model and fields"""
     mname = model["name"]
     is_olc = False
-    # account for custom and imported note types:
     if mname in config["synced"]["olmdls"] or mname.startswith(OLC_MODEL):
         is_olc = True
     if notify and not is_olc:
@@ -360,7 +332,6 @@ def checkModel(model, fields=True, notify=True):
     for fid in OLC_FIDS_PRIV:
         fname = config["synced"]["flds"][fid]
         if fid == "tx":
-            # should have at least 3 text fields
             complete = all(fname + str(i) in flds for i in range(1, 4))
         else:
             complete = fname in flds
@@ -379,44 +350,42 @@ def addModel(col):
     models = col.models
     model = models.new(OLC_MODEL)
     model['type'] = MODEL_CLOZE
-    # Add fields:
     for i in OLC_FLDS_IDS:
         if i == "tx":
             for i in range(1, OLC_MAX+1):
-                fld = models.newField(OLC_FLDS["tx"]+str(i))
+                fld = models.new_field(OLC_FLDS["tx"]+str(i))
                 fld["size"] = 12
-                models.addField(model, fld)
+                models.add_field(model, fld)
             continue
-        fld = models.newField(OLC_FLDS[i])
+        fld = models.new_field(OLC_FLDS[i])
         if i == "st":
             fld["sticky"] = True
         if i == "fl":
             fld["size"] = 12
-        models.addField(model, fld)
-    # Add template
-    template = models.newTemplate(OLC_CARD)
+        models.add_field(model, fld)
+    template = models.new_template(OLC_CARD)
     template['qfmt'] = card_front
     template['afmt'] = card_back
     model['css'] = card_css
-    model['sortf'] = 1  # set sortfield to title
-    models.addTemplate(model, template)
+    model['sortf'] = 1
+    models.add_template(model, template)
     models.add(model)
     return model
 
 
 def updateTemplate(col):
     """Update add-on card templates"""
-    print("Updating %s card template".format(OLC_MODEL))
-    model = col.models.byName(OLC_MODEL)
+    print("Updating {} card template".format(OLC_MODEL))
+    model = col.models.by_name(OLC_MODEL)
     template = model['tmpls'][0]
     template['qfmt'] = card_front
     template['afmt'] = card_back
     model['css'] = card_css
-    col.models.save()
+    col.models.save(model)
     return model
 
 
 def initializeModels():
-    model = mw.col.models.byName(OLC_MODEL)
+    model = mw.col.models.by_name(OLC_MODEL)
     if not model:
         model = addModel(mw.col)

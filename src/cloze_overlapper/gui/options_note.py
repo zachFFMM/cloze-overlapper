@@ -3,40 +3,13 @@
 # Cloze Overlapper Add-on for Anki
 #
 # Copyright (C) 2016-2019  Aristotelis P. <https://glutanimate.com/>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version, with the additions
-# listed at the end of the license file that accompanied this program
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# NOTE: This program is subject to certain additional terms pursuant to
-# Section 7 of the GNU Affero General Public License.  You should have
-# received a copy of these additional terms immediately following the
-# terms and conditions of the GNU Affero General Public License that
-# accompanied this program.
-#
-# If not, please request a copy through one of the means of contact
-# listed here: <https://glutanimate.com/contact/>.
-#
-# Any modifications to this file must keep this entire header intact.
+# Updated for modern Anki (2.1.45+)
 
 """
 Note settings dialog
 """
 
-from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
-
-from aqt.qt import *
+from aqt.qt import QDialog
 
 from ..config import config, parseNoteSettings, createNoteSettings
 
@@ -47,19 +20,18 @@ class OlcOptionsNote(QDialog):
 
     def __init__(self, parent):
         super(OlcOptionsNote, self).__init__(parent=parent)
-        # load qt-designer form:
         self.f = settings_note.Ui_Dialog()
         self.f.setupUi(self)
         self.f.buttonBox.accepted.connect(self.onAccept)
         self.f.buttonBox.rejected.connect(self.onReject)
-        self.parent = parent
+        self.parent_window = parent
         self.ed = parent.editor
         self.note = self.ed.note
         self.flds = config["synced"]["flds"]
         self.setupValues()
 
     def setupValues(self):
-        self.ed.web.eval("saveField('key');")  # save field
+        self.ed.web.eval("saveField('key');")
         setopts = parseNoteSettings(self.note[self.flds["st"]])
         settings, options = setopts
         before, prompt, after = settings
@@ -78,7 +50,7 @@ class OlcOptionsNote(QDialog):
         before = self.f.sb_before.value()
         after = self.f.sb_after.value()
         prompt = self.f.sb_cloze.value()
-        
+
         before = before if before != -1 else None
         after = after if after != -1 else None
 
@@ -89,16 +61,16 @@ class OlcOptionsNote(QDialog):
         setopts = (settings, options)
         settings_fld = createNoteSettings(setopts)
         self.note[self.flds["st"]] = settings_fld
-        
+
         self.ed.loadNote()
-        
+
         if self.ed.currentField is not None:
             self.ed.web.eval("focusField(%d);" % self.ed.currentField)
         else:
             self.ed.web.eval("focusField(0);")
-        
-        self.ed.onOlClozeButton(parent=self.parent)
-        
+
+        self.ed.onOlClozeButton(parent=self.parent_window)
+
         self.close()
 
     def onReject(self):

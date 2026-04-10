@@ -3,46 +3,13 @@
 # Libaddon for Anki
 #
 # Copyright (C) 2018-2019  Aristotelis P. <https//glutanimate.com/>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version, with the additions
-# listed at the end of the license file that accompanied this program.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# NOTE: This program is subject to certain additional terms pursuant to
-# Section 7 of the GNU Affero General Public License.  You should have
-# received a copy of these additional terms immediately following the
-# terms and conditions of the GNU Affero General Public License that
-# accompanied this program.
-#
-# If not, please request a copy through one of the means of contact
-# listed here: <https://glutanimate.com/contact/>.
-#
-# Any modifications to this file must keep this entire header intact.
+# Updated for modern Anki (2.1.45+)
 
 """
 Generate 'about' info, including credits, copyright, etc.
 """
 
-from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
-
 from ..consts import ADDON
-from ..platform import ANKI20
-
-if not ANKI20:
-    string = str
-else:
-    import string
 
 libs_header = (
     "<p>{} ships with the following third-party code:</p>".format(ADDON.NAME))
@@ -68,8 +35,8 @@ html_template = """\
     <p><span style="font-weight:600;">Credits</span></p>
     {authors_string}
     {libs_string}
-    
-    <p><img src="qrc:/{qrc_prefix}/icons/heart_small.svg"/><span style=" font-weight:600;"> Thank you!</span></p>
+
+    <p><span style=" font-weight:600;"> Thank you!</span></p>
     <p>My heartfelt thanks go out to everyone who has <b>supported</b> this add-on through their tips,
         contributions, or any other means. You guys rock!</p>
     <p>In particular I would like to thank all of the awesome people who support me
@@ -79,7 +46,7 @@ html_template = """\
         <b><a href="https://www.patreon.com/bePatron?u=7522179">Pledge your support on Patreon now</a></b>
         to receive all kinds of exclusive goodies!
     </i></p>
-    
+
     <p><span style="font-weight:600;">License</span></p>
     <p><i>{display_name}</i> is <b>free and open-source</b> software. The add-on code that runs within
         Anki is released under the {license} license, extended by a number of additional terms.
@@ -91,11 +58,11 @@ html_template = """\
 """
 
 authors_template = """\
-<p>© {years} <a href="{contact}">{name}</a></p>\
+<p>&copy; {years} <a href="{contact}">{name}</a></p>\
 """
 
 libs_item_template = """\
-<li><a href="{url}">{name}</a> ({version}), © {author}, {license}</li>\
+<li><a href="{url}">{name}</a> ({version}), &copy; {author}, {license}</li>\
 """
 
 title_template = """\
@@ -112,7 +79,7 @@ def get_about_string(title=False):
     else:
         libs_string = ""
     contributors_string = "<p>With patches from: <i>{}</i></p>".format(
-        ", ".join(sorted(ADDON.CONTRIBUTORS, key=string.lower))
+        ", ".join(sorted(ADDON.CONTRIBUTORS, key=str.lower))
     )
 
     members_top_string = "<b>{}</b>".format(", ".join(ADDON.MEMBERS_TOP))

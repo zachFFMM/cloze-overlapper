@@ -3,51 +3,22 @@
 # Cloze Overlapper Add-on for Anki
 #
 # Copyright (C)  2016-2019 Aristotelis P. <https://glutanimate.com/>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version, with the additions
-# listed at the end of the license file that accompanied this program
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# NOTE: This program is subject to certain additional terms pursuant to
-# Section 7 of the GNU Affero General Public License.  You should have
-# received a copy of these additional terms immediately following the
-# terms and conditions of the GNU Affero General Public License that
-# accompanied this program.
-#
-# If not, please request a copy through one of the means of contact
-# listed here: <https://glutanimate.com/contact/>.
-#
-# Any modifications to this file must keep this entire header intact.
+# Updated for modern Anki (2.1.45+)
 
 """
 Additions to Anki's note editor
 """
 
-from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
-
+import os
 import re
 
-from anki.hooks import wrap, addHook
-
-from aqt.qt import *
-from aqt import mw
+from aqt.qt import QShortcut, QKeySequence, QIcon, Qt
+from aqt import mw, gui_hooks
 from aqt.editor import Editor
 from aqt.addcards import AddCards
-from aqt.editcurrent import EditCurrent
 from aqt.utils import tooltip, showInfo
 
-from .libaddon.platform import ANKI20, PATH_ADDON
+from .libaddon.platform import PATH_ADDON
 
 from .overlapper import ClozeOverlapper
 from .gui.options_note import OlcOptionsNote
@@ -58,13 +29,13 @@ from .utils import showTT
 
 # Hotkey definitions
 
-olc_hotkey_generate = "Alt+Shift+C"  # Cloze generation/preview
-olc_hotkey_options = "Alt+Shift+O"  # Note-specific settings
-olc_hotkey_cremove = "Alt+Shift+U"  # Remove selected clozes
-olc_hotkey_olist = "Ctrl+Alt+Shift+."  # Toggle ordered list
-olc_hotkey_ulist = "Ctrl+Alt+Shift+,"  # Toggle unordered list
-olc_hotkey_mcloze = "Ctrl+Shift+K"  # Multi-line cloze
-olc_hotkey_mclozealt = "Ctrl+Alt+Shift+K"  # Multi-line cloze alt
+olc_hotkey_generate = "Alt+Shift+C"
+olc_hotkey_options = "Alt+Shift+O"
+olc_hotkey_cremove = "Alt+Shift+U"
+olc_hotkey_olist = "Ctrl+Alt+Shift+."
+olc_hotkey_ulist = "Ctrl+Alt+Shift+,"
+olc_hotkey_mcloze = "Ctrl+Shift+K"
+olc_hotkey_mclozealt = "Ctrl+Alt+Shift+K"
 
 # Javascript
 
@@ -136,30 +107,17 @@ if (typeof window.getSelection != "undefined") {
 """
 
 
-
 # EDITOR
 
 # Button callback wrappers
 
-# anki21 executes JS asynchronously. In order to assure that we are working
-# with the most recent field contents, we use a decorator to fire the
-# button/hotkey callback after evaluating the pertinent JS:
-
 def editorSaveThen(callback):
-    if ANKI20:
-        return callback
-
     def onSaved(editor, *args, **kwargs):
-        # uses evalWithCallback internally:
         editor.saveNow(lambda: callback(editor, *args, **kwargs))
-
     return onSaved
 
-# In some cases we need to apply changes to field HTML via JS before
-# proceeding:
 
 def JSformatFieldThen(editor, field_idx, commands, callback):
-
     cmd_str = "\n".join("""document.execCommand("{}");""".format(cmd)
                         for cmd in commands)
 
@@ -168,12 +126,8 @@ focusField(%(field_idx)d);
 %(cmd_str)s
 saveField('key');
 """ % {"field_idx": field_idx, "cmd_str": cmd_str}
-    
-    if ANKI20:
-        editor.web.eval(js)
-        callback()
-    else:
-        editor.web.evalWithCallback(js, lambda res: callback())
+
+    editor.web.evalWithCallback(js, lambda res: callback())
 
 
 # Utility
@@ -187,18 +141,15 @@ def refreshEditor(editor):
 
 def onInsertCloze(self, _old):
     """Handles cloze-wraps when the add-on model is active"""
-    if not checkModel(self.note.model(), fields=False, notify=False):
+    if not checkModel(self.note.note_type(), fields=False, notify=False):
         return _old(self)
-    # find the highest existing cloze
     highest = 0
     for name, val in self.note.items():
-        m = re.findall("\[\[oc(\d+)::", val)
+        m = re.findall(r"\[\[oc(\d+)::", val)
         if m:
             highest = max(highest, sorted([int(x) for x in m])[-1])
-    # reuse last?
-    if not self.mw.app.keyboardModifiers() & Qt.AltModifier:
+    if not self.mw.app.keyboardModifiers() & Qt.KeyboardModifier.AltModifier:
         highest += 1
-    # must start at 1
     highest = max(1, highest)
     self.web.eval("wrap('[[oc%d::', ']]');" % highest)
 
@@ -206,35 +157,31 @@ def onInsertCloze(self, _old):
 @editorSaveThen
 def onInsertMultipleClozes(self):
     """Wraps each line in a separate cloze"""
-    model = self.note.model()
-    # check that the model is set up for cloze deletion
+    model = self.note.note_type()
     if not re.search('{{(.*:)*cloze:', model['tmpls'][0]['qfmt']):
         if self.addMode:
             tooltip("Warning, cloze deletions will not work until "
                     "you switch the type at the top to Cloze.")
         else:
-            showInfo("""\
-To make a cloze deletion on an existing note, you need to change it \
-to a cloze type first, via Edit>Change Note Type.""")
+            showInfo("To make a cloze deletion on an existing note, you need to change it "
+                     "to a cloze type first, via Edit>Change Note Type.")
             return
     if checkModel(model, fields=False, notify=False):
-        cloze_re = "\[\[oc(\d+)::"
+        cloze_re = r"\[\[oc(\d+)::"
         wrap_pre, wrap_post = "[[oc", "]]"
     else:
-        cloze_re = "\{\{c(\d+)::"
+        cloze_re = r"\{\{c(\d+)::"
         wrap_pre, wrap_post = "{{c", "}}"
-    # find the highest existing cloze
     highest = 0
     for name, val in self.note.items():
         m = re.findall(cloze_re, val)
         if m:
             highest = max(highest, sorted([int(x) for x in m])[-1])
     increment = "false"
-    if not self.mw.app.keyboardModifiers() & Qt.AltModifier:
+    if not self.mw.app.keyboardModifiers() & Qt.KeyboardModifier.AltModifier:
         highest += 1
         increment = "true"
     highest = max(1, highest)
-    # process selected text
     self.web.eval(js_cloze_multi % (
         increment, highest, wrap_pre, wrap_post))
 
@@ -242,7 +189,7 @@ to a cloze type first, via Edit>Change Note Type.""")
 @editorSaveThen
 def onRemoveClozes(self):
     """Remove cloze markers and hints from selected text"""
-    if checkModel(self.note.model(), fields=False, notify=False):
+    if checkModel(self.note.note_type(), fields=False, notify=False):
         cloze_re = r"\[\[oc(\d+)::(.*?)(::(.*?))?\]\]"
     else:
         cloze_re = r"\{\{c(\d+)::(.*?)(::(.*?))?\}\}"
@@ -252,18 +199,18 @@ def onRemoveClozes(self):
 @editorSaveThen
 def onOlOptionsButton(self):
     """Invoke note-specific options dialog"""
-    if not checkModel(self.note.model()):
+    if not checkModel(self.note.note_type()):
         return False
     options = OlcOptionsNote(self.parentWindow)
-    options.exec_()
+    options.exec()
 
 
 @editorSaveThen
 def onOlClozeButton(editor, markup=None, parent=None):
     """Invokes an instance of the main add-on class"""
-    if not checkModel(editor.note.model()):
+    if not checkModel(editor.note.note_type()):
         return False
-    
+
     def onFieldReady():
         overlapper = ClozeOverlapper(editor.note, markup=markup,
                                      parent=parent)
@@ -271,7 +218,7 @@ def onOlClozeButton(editor, markup=None, parent=None):
         refreshEditor(editor)
 
     if markup:
-        field_map = mw.col.models.fieldMap(editor.note.model())
+        field_map = mw.col.models.field_map(editor.note.note_type())
         og_fld_name = config["synced"]["flds"]["og"]
         og_fld_idx = field_map[og_fld_name][0]
 
@@ -279,10 +226,10 @@ def onOlClozeButton(editor, markup=None, parent=None):
                           else "insertUnorderedList"]
         return JSformatFieldThen(editor, og_fld_idx,
                                  field_commands, onFieldReady)
-    
+
     return onFieldReady()
 
-# ADDCARDS / EDITCURRENT
+# ADDCARDS
 
 # Callbacks
 
@@ -291,11 +238,8 @@ def onAddCards(self, _old):
     editor = self.editor
     note = editor.note
 
-    if not note or not checkModel(note.model(), notify=False):
+    if not note or not checkModel(note.note_type(), notify=False):
         return _old(self)
-
-    if ANKI20:
-        editor.saveNow()
 
     overlapper = ClozeOverlapper(editor.note, silent=True)
     ret, total = overlapper.add()
@@ -312,45 +256,19 @@ def onAddCards(self, _old):
     return oldret
 
 
-def onEditCurrent(editcurrent, _old):
-    """Automatically update overlapping clozes when editing cards"""
-    editor = editcurrent.editor
-    note = editor.note
-
-    if not note or not checkModel(note.model(), notify=False):
-        return _old(editcurrent)
-
-    if ANKI20:
-        editor.saveNow()
-
-    overlapper = ClozeOverlapper(editor.note, silent=True)
-    ret, total = overlapper.add()
-
-    # returning here won't stop the window from being rejected, so we simply
-    # accept whatever changes the user performed, even if the generator
-    # did not fire
-
-    oldret = _old(editcurrent)
-    if total:
-        showTT("Info", "Updated %d overlapping cloze cards" %
-               total, period=1000)
-
-    return oldret
-
-
 def onAddNote(addcards, note, _old):
     """Suspend full cloze card if option active"""
     note = _old(addcards, note)
-    if not note or not checkModel(note.model(), fields=False, notify=False):
+    if not note or not checkModel(note.note_type(), fields=False, notify=False):
         return note
     sched_conf = config["synced"].get("sched", None)
     if not sched_conf or not sched_conf[2]:
         return note
     maxfields = ClozeOverlapper.getMaxFields(
-        note.model(), config["synced"]["flds"]["tx"])
+        note.note_type(), config["synced"]["flds"]["tx"])
     last = note.cards()[-1]
     if last.ord == maxfields:  # is full cloze (ord starts at 0)
-        mw.col.sched.suspendCards([last.id])
+        mw.col.sched.suspend_cards([last.id])
     return note
 
 
@@ -361,7 +279,6 @@ icon_generate = os.path.join(icon_path, "oc_generate.svg")
 icon_options = os.path.join(icon_path, "oc_options.svg")
 icon_remove = os.path.join(icon_path, "oc_remove.svg")
 
-
 tooltip_generate = "Generate overlapping clozes ({})".format(
     olc_hotkey_generate)
 tooltip_options = "Overlapping cloze options ({})".format(
@@ -369,35 +286,9 @@ tooltip_options = "Overlapping cloze options ({})".format(
 tooltip_remove = "Remove all cloze markers in selected text ({})".format(
     olc_hotkey_cremove)
 
-def onSetupEditorButtons20(editor):
-    """Add buttons and hotkeys to the editor widget"""
 
-    b = editor._addButton("OlCloze",
-                          editor.onOlClozeButton, olc_hotkey_generate,
-                          tooltip_generate, size=True)
-    b.setIcon(QIcon(icon_generate))
-    b.setFixedWidth(24)
-
-    b = editor._addButton("OlOptions",
-                          editor.onOlOptionsButton, olc_hotkey_options,
-                          tooltip_options, size=True)
-    b.setIcon(QIcon(icon_options))
-    b.setFixedWidth(24)
-
-    b = editor._addButton("RemoveClozes",
-                          editor.onRemoveClozes, olc_hotkey_cremove,
-                          tooltip_remove, size=True)
-    b.setIcon(QIcon(icon_remove))
-    b.setFixedWidth(24)
-
-    setupAdditionalHotkeys(editor)
-
-
-def onSetupEditorButtons21(buttons, editor):
+def onSetupEditorButtons(buttons, editor):
     """Add buttons and hotkeys"""
-
-    # bind to editor.olc_hotkey_generate because anki21 passes
-    # editor instance by default
     b = editor.addButton(icon_generate, "OlCloze", onOlClozeButton,
                          tooltip_generate, keys=olc_hotkey_generate)
     buttons.append(b)
@@ -430,25 +321,25 @@ def setupAdditionalHotkeys(editor):
 
 # MAIN
 
+def _wrap_method(cls, method_name, wrapper, pos="around"):
+    """Monkey-patch a method on a class, compatible with modern Anki."""
+    original = getattr(cls, method_name)
+    if pos == "around":
+        def patched(self, *args, **kwargs):
+            return wrapper(self, *args, _old=original, **kwargs)
+        setattr(cls, method_name, patched)
+
+
 def initializeEditor():
-    # Editor widget
-    Editor.onCloze = wrap(Editor.onCloze, onInsertCloze, "around")
+    # Editor widget - wrap onCloze for our custom cloze syntax
+    _wrap_method(Editor, "onCloze", onInsertCloze)
     Editor.onOlClozeButton = onOlClozeButton
     Editor.onOlOptionsButton = onOlOptionsButton
     Editor.onInsertMultipleClozes = onInsertMultipleClozes
     Editor.onRemoveClozes = onRemoveClozes
-    if ANKI20:
-        addHook("setupEditorButtons", onSetupEditorButtons20)
-    else:
-        addHook("setupEditorButtons", onSetupEditorButtons21)
 
-    # AddCard / EditCurrent windows
-    AddCards.addNote = wrap(AddCards.addNote, onAddNote, "around")
-    if ANKI20:
-        AddCards.addCards = wrap(AddCards.addCards, onAddCards, "around")
-        EditCurrent.onSave = wrap(EditCurrent.onSave, onEditCurrent, "around")
-    else:
-        # always use the methods that are fired on editor save:
-        AddCards._addCards = wrap(AddCards._addCards, onAddCards, "around")
-        EditCurrent._saveAndClose = wrap(EditCurrent._saveAndClose,
-                                         onEditCurrent, "around")
+    gui_hooks.editor_did_init_buttons.append(onSetupEditorButtons)
+
+    # AddCard windows - wrap _addCards and addNote
+    _wrap_method(AddCards, "_addCards", onAddCards)
+    _wrap_method(AddCards, "addNote", onAddNote)

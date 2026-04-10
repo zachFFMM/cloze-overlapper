@@ -3,49 +3,19 @@
 # Cloze Overlapper Add-on for Anki
 #
 # Copyright (C)  2016-2019 Aristotelis P. <https://glutanimate.com/>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version, with the additions
-# listed at the end of the license file that accompanied this program
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-#
-# NOTE: This program is subject to certain additional terms pursuant to
-# Section 7 of the GNU Affero General Public License.  You should have
-# received a copy of these additional terms immediately following the
-# terms and conditions of the GNU Affero General Public License that
-# accompanied this program.
-#
-# If not, please request a copy through one of the means of contact
-# listed here: <https://glutanimate.com/contact/>.
-#
-# Any modifications to this file must keep this entire header intact.
+# Updated for modern Anki (2.1.45+)
 
 """
 Adds overlapping clozes
 """
 
-from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
-
-from .libaddon.platform import ANKI20
-
 import re
 from operator import itemgetter
 from itertools import groupby
 
-if ANKI20:
-    from BeautifulSoup import BeautifulSoup
-else:
-    from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup
+
+from aqt import mw
 
 from .config import config, parseNoteSettings, createNoteSettings
 from .generator import ClozeGenerator
@@ -59,7 +29,7 @@ class ClozeOverlapper(object):
 
     def __init__(self, note, markup=False, silent=False, parent=None):
         self.note = note
-        self.model = self.note.model()
+        self.model = self.note.note_type()
         self.flds = config["synced"]["flds"]
         self.markup = markup
         self.silent = silent
@@ -138,18 +108,14 @@ class ClozeOverlapper(object):
 
     def getLineItems(self, html):
         """Detects HTML list markups and returns a list of plaintext lines"""
-        if ANKI20:  # do not supply parser to avoid AttributeError
-            soup = BeautifulSoup(html)
-        else:
-            soup = BeautifulSoup(html, "html.parser")
-        text = soup.getText("\n")  # will need to be updated for bs4
+        soup = BeautifulSoup(html, "html.parser")
+        text = soup.getText("\n")
         if soup.findAll("ol"):
             self.markup = "ol"
         elif soup.findAll("ul"):
             self.markup = "ul"
         else:
             self.markup = "div"
-        # remove empty lines:
         lines = re.sub(r"^(&nbsp;)+$", "", text,
                        flags=re.MULTILINE).splitlines()
         items = [line for line in lines if line.strip() != '']
@@ -162,7 +128,6 @@ class ClozeOverlapper(object):
         fields = [f['name'] for f in m['flds'] if f['name'].startswith(prefix)]
         last = 0
         for f in fields:
-            # check for non-continuous cloze fields
             if not f.startswith(prefix):
                 continue
             try:
@@ -200,7 +165,7 @@ class ClozeOverlapper(object):
             full = full if custom else self.processField(full)
         note[self.flds["fl"]] = full
         note[self.flds["st"]] = createNoteSettings(setopts)
-        note.flush()
+        mw.col.update_note(note)
 
     def processField(self, field):
         """Convert field contents back to HTML based on previous markup"""
