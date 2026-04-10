@@ -17,6 +17,7 @@ from aqt import mw, gui_hooks
 from aqt.editor import Editor
 from aqt.addcards import AddCards
 from aqt.utils import tooltip, showInfo
+import sys
 
 from .libaddon.platform import PATH_ADDON
 
@@ -24,6 +25,7 @@ from .overlapper import ClozeOverlapper
 from .gui.options_note import OlcOptionsNote
 from .template import checkModel
 from .config import config
+from .consts import OLC_MAX
 from .utils import showTT
 
 
@@ -71,7 +73,7 @@ if (typeof window.getSelection != "undefined") {
     // workaround for duplicate list items:
     var clozed = container.innerHTML.replace(/^(<li>)/, "")
     document.execCommand('insertHTML', false, clozed);
-    saveField('key');
+    if (typeof saveField !== 'undefined') saveField('key');
 }
 """
 
@@ -102,9 +104,61 @@ if (typeof window.getSelection != "undefined") {
     // workaround for duplicate list items:
     var sel = sel.replace(/^(<li>)/, "")
     document.execCommand('insertHTML', false, sel);
-    saveField('key');
+    if (typeof saveField !== 'undefined') saveField('key');
 }
 """
+
+
+# CSS to hide internal fields (Text1-20, Full, Settings) in the editor
+HIDE_FIELDS_CSS = """
+.olc-hidden-field {
+    display: none !important;
+}
+"""
+
+HIDE_FIELDS_JS = """
+(function() {
+    var fieldNames = %s;
+    var labels = document.querySelectorAll('.field-container .label-name, .fname');
+    labels.forEach(function(label) {
+        var name = label.textContent.trim();
+        if (fieldNames.indexOf(name) !== -1) {
+            var container = label.closest('.field-container') || label.closest('.editingArea')?.parentElement;
+            if (container) container.style.display = 'none';
+        }
+    });
+})();
+"""
+
+
+def getHiddenFieldNames():
+    """Get list of field names that should be hidden in the editor"""
+    flds = config["synced"]["flds"]
+    names = [flds["st"], flds["fl"]]  # Settings, Full
+    for i in range(1, OLC_MAX + 1):
+        names.append(flds["tx"] + str(i))  # Text1-Text20
+    return names
+
+
+def onEditorDidLoad(editor):
+    """Hide internal fields when an OLC note is loaded"""
+    if not editor.note:
+        return
+    if not checkModel(editor.note.note_type(), fields=False, notify=False):
+        return
+    import json
+    names = getHiddenFieldNames()
+    editor.web.eval(HIDE_FIELDS_JS % json.dumps(names))
+
+
+def onEditorDidLoadDelayed(editor):
+    """Delayed hide to ensure fields are rendered"""
+    from aqt.qt import QTimer
+    if not editor.note:
+        return
+    if not checkModel(editor.note.note_type(), fields=False, notify=False):
+        return
+    QTimer.singleShot(100, lambda: onEditorDidLoad(editor))
 
 
 # EDITOR
@@ -113,7 +167,11 @@ if (typeof window.getSelection != "undefined") {
 
 def editorSaveThen(callback):
     def onSaved(editor, *args, **kwargs):
-        editor.saveNow(lambda: callback(editor, *args, **kwargs))
+        if hasattr(editor, 'saveNow'):
+            editor.saveNow(lambda: callback(editor, *args, **kwargs))
+        else:
+            # Modern Anki may not have saveNow; call directly
+            callback(editor, *args, **kwargs)
     return onSaved
 
 
@@ -122,9 +180,9 @@ def JSformatFieldThen(editor, field_idx, commands, callback):
                         for cmd in commands)
 
     js = """
-focusField(%(field_idx)d);
+if (typeof focusField !== 'undefined') focusField(%(field_idx)d);
 %(cmd_str)s
-saveField('key');
+if (typeof saveField !== 'undefined') saveField('key');
 """ % {"field_idx": field_idx, "cmd_str": cmd_str}
 
     editor.web.evalWithCallback(js, lambda res: callback())
@@ -133,9 +191,11 @@ saveField('key');
 # Utility
 
 def refreshEditor(editor):
-    editor.loadNote()
+    if hasattr(editor, 'loadNote'):
+        editor.loadNote()
     focus = editor.currentField or 0
-    editor.web.eval("focusField({});".format(focus))
+    editor.web.eval(
+        "if (typeof focusField !== 'undefined') focusField({});".format(focus))
 
 # Button callbacks
 
@@ -145,13 +205,14 @@ def onInsertCloze(self, _old):
         return _old(self)
     highest = 0
     for name, val in self.note.items():
-        m = re.findall(r"\[\[oc(\d+)::", val)
+        m = re.findall(r"\{\{oc(\d+)::", val)
         if m:
             highest = max(highest, sorted([int(x) for x in m])[-1])
     if not self.mw.app.keyboardModifiers() & Qt.KeyboardModifier.AltModifier:
         highest += 1
     highest = max(1, highest)
-    self.web.eval("wrap('[[oc%d::', ']]');" % highest)
+    self.web.eval(
+        "if (typeof wrap !== 'undefined') wrap('{{oc%d::', '}}');" % highest)
 
 
 @editorSaveThen
@@ -167,8 +228,8 @@ def onInsertMultipleClozes(self):
                      "to a cloze type first, via Edit>Change Note Type.")
             return
     if checkModel(model, fields=False, notify=False):
-        cloze_re = r"\[\[oc(\d+)::"
-        wrap_pre, wrap_post = "[[oc", "]]"
+        cloze_re = r"\{\{oc(\d+)::"
+        wrap_pre, wrap_post = "{{oc", "}}"
     else:
         cloze_re = r"\{\{c(\d+)::"
         wrap_pre, wrap_post = "{{c", "}}"
@@ -187,13 +248,21 @@ def onInsertMultipleClozes(self):
 
 
 @editorSaveThen
-def onRemoveClozes(self):
-    """Remove cloze markers and hints from selected text"""
-    if checkModel(self.note.note_type(), fields=False, notify=False):
-        cloze_re = r"\[\[oc(\d+)::(.*?)(::(.*?))?\]\]"
+def onRemoveClozes(editor):
+    """Remove all cloze markers from the current field"""
+    if checkModel(editor.note.note_type(), fields=False, notify=False):
+        cloze_re = re.compile(r"\{\{oc\d+::(.*?)(?:::[^}]*)?\}\}")
     else:
-        cloze_re = r"\{\{c(\d+)::(.*?)(::(.*?))?\}\}"
-    self.web.eval(js_cloze_remove % cloze_re)
+        cloze_re = re.compile(r"\{\{c\d+::(.*?)(?:::[^}]*)?\}\}")
+    # Strip cloze markers from all fields
+    changed = False
+    for name, val in editor.note.items():
+        cleaned = cloze_re.sub(r"\1", val)
+        if cleaned != val:
+            editor.note[name] = cleaned
+            changed = True
+    if changed:
+        refreshEditor(editor)
 
 
 @editorSaveThen
@@ -207,27 +276,19 @@ def onOlOptionsButton(self):
 
 @editorSaveThen
 def onOlClozeButton(editor, markup=None, parent=None):
-    """Invokes an instance of the main add-on class"""
-    if not checkModel(editor.note.note_type()):
+    """Wrap selected text in {{ocN::}} markers, like standard cloze button"""
+    if not checkModel(editor.note.note_type(), fields=False, notify=False):
         return False
-
-    def onFieldReady():
-        overlapper = ClozeOverlapper(editor.note, markup=markup,
-                                     parent=parent)
-        overlapper.add()
-        refreshEditor(editor)
-
-    if markup:
-        field_map = mw.col.models.field_map(editor.note.note_type())
-        og_fld_name = config["synced"]["flds"]["og"]
-        og_fld_idx = field_map[og_fld_name][0]
-
-        field_commands = ["selectAll", "insertOrderedList" if markup == "ol"
-                          else "insertUnorderedList"]
-        return JSformatFieldThen(editor, og_fld_idx,
-                                 field_commands, onFieldReady)
-
-    return onFieldReady()
+    # Find highest existing oc number across all fields
+    highest = 0
+    for name, val in editor.note.items():
+        m = re.findall(r"\{\{oc(\d+)::", val)
+        if m:
+            highest = max(highest, sorted([int(x) for x in m])[-1])
+    highest += 1
+    highest = max(1, highest)
+    editor.web.eval(
+        "if (typeof wrap !== 'undefined') wrap('{{oc%d::', '}}');" % highest)
 
 # ADDCARDS
 
@@ -287,35 +348,58 @@ tooltip_remove = "Remove all cloze markers in selected text ({})".format(
     olc_hotkey_cremove)
 
 
+def _get_editor_widget(editor):
+    """Get a suitable parent widget for shortcuts, compatible across Anki versions."""
+    for attr in ("widget", "web", "parentWindow"):
+        w = getattr(editor, attr, None)
+        if w is not None:
+            return w
+    return None
+
+
 def onSetupEditorButtons(buttons, editor):
     """Add buttons and hotkeys"""
-    b = editor.addButton(icon_generate, "OlCloze", onOlClozeButton,
-                         tooltip_generate, keys=olc_hotkey_generate)
-    buttons.append(b)
+    try:
+        b = editor.addButton(icon_generate, "OlCloze", onOlClozeButton,
+                             tooltip_generate, keys=olc_hotkey_generate)
+        buttons.append(b)
+    except Exception:
+        pass
 
-    b = editor.addButton(icon_options, "OlOptions", onOlOptionsButton,
-                         tooltip_options, keys=olc_hotkey_options)
-    buttons.append(b)
+    try:
+        b = editor.addButton(icon_options, "OlOptions", onOlOptionsButton,
+                             tooltip_options, keys=olc_hotkey_options)
+        buttons.append(b)
+    except Exception:
+        pass
 
-    b = editor.addButton(icon_remove, "RemoveClozes", onRemoveClozes,
-                         tooltip_remove, keys=olc_hotkey_cremove)
-    buttons.append(b)
+    try:
+        b = editor.addButton(icon_remove, "RemoveClozes", onRemoveClozes,
+                             tooltip_remove, keys=olc_hotkey_cremove)
+        buttons.append(b)
+    except Exception:
+        pass
 
-    setupAdditionalHotkeys(editor)
+    try:
+        setupAdditionalHotkeys(editor)
+    except Exception:
+        pass
 
     return buttons
 
 def setupAdditionalHotkeys(editor):
-    add_ol_cut = QShortcut(QKeySequence(olc_hotkey_olist), editor.widget)
+    parent = _get_editor_widget(editor)
+    if parent is None:
+        return
+
+    add_ol_cut = QShortcut(QKeySequence(olc_hotkey_olist), parent)
     add_ol_cut.activated.connect(lambda o="ol": onOlClozeButton(editor, o))
-    add_ul_cut = QShortcut(QKeySequence(olc_hotkey_ulist), editor.widget)
+    add_ul_cut = QShortcut(QKeySequence(olc_hotkey_ulist), parent)
     add_ul_cut.activated.connect(lambda o="ul": onOlClozeButton(editor, o))
 
-    mult_cloze_cut1 = QShortcut(QKeySequence(
-        olc_hotkey_mcloze), editor.widget)
+    mult_cloze_cut1 = QShortcut(QKeySequence(olc_hotkey_mcloze), parent)
     mult_cloze_cut1.activated.connect(lambda: onInsertMultipleClozes(editor))
-    mult_cloze_cut2 = QShortcut(QKeySequence(
-        olc_hotkey_mclozealt), editor.widget)
+    mult_cloze_cut2 = QShortcut(QKeySequence(olc_hotkey_mclozealt), parent)
     mult_cloze_cut2.activated.connect(lambda: onInsertMultipleClozes(editor))
 
 
@@ -332,7 +416,8 @@ def _wrap_method(cls, method_name, wrapper, pos="around"):
 
 def initializeEditor():
     # Editor widget - wrap onCloze for our custom cloze syntax
-    _wrap_method(Editor, "onCloze", onInsertCloze)
+    if hasattr(Editor, "onCloze"):
+        _wrap_method(Editor, "onCloze", onInsertCloze)
     Editor.onOlClozeButton = onOlClozeButton
     Editor.onOlOptionsButton = onOlOptionsButton
     Editor.onInsertMultipleClozes = onInsertMultipleClozes
@@ -340,6 +425,14 @@ def initializeEditor():
 
     gui_hooks.editor_did_init_buttons.append(onSetupEditorButtons)
 
+    # Hide internal fields when editor loads a note
+    gui_hooks.editor_did_load_note.append(onEditorDidLoadDelayed)
+
     # AddCard windows - wrap _addCards and addNote
-    _wrap_method(AddCards, "_addCards", onAddCards)
-    _wrap_method(AddCards, "addNote", onAddNote)
+    # Method names vary across Anki versions
+    for method_name in ("_add_current_note", "_addCards"):
+        if hasattr(AddCards, method_name):
+            _wrap_method(AddCards, method_name, onAddCards)
+            break
+    if hasattr(AddCards, "addNote"):
+        _wrap_method(AddCards, "addNote", onAddNote)

@@ -19,69 +19,35 @@ from .libaddon.anki.configmanager import ConfigManager
 
 from .consts import *
 
+# Context modes
+MODE_NONE = 0       # all items hidden except current cloze
+MODE_PREVIOUS = 1   # show previous items as context
+MODE_ALL = 2        # show all items except current cloze
+
 
 def parseNoteSettings(html):
-    """Return note settings. Fall back to defaults if necessary."""
-    options, settings, opts, sets = None, None, None, None
-    dflt_set, dflt_opt = config["synced"]["dflts"], config["synced"]["dflto"]
-    field = strip_html(html)
-
-    lines = field.replace(" ", "").split("|")
-    if not lines:
-        return (dflt_set, dflt_opt)
-    settings = lines[0].split(",")
-    if len(lines) > 1:
-        options = lines[1].split(",")
-
-    if not options and not settings:
-        return (dflt_set, dflt_opt)
-
-    if not settings:
-        sets = dflt_set
-    else:
-        sets = []
-        for idx, item in enumerate(settings[:3]):
-            try:
-                sets.append(int(item))
-            except ValueError:
-                sets.append(None)
-        length = len(sets)
-        if length == 3 and isinstance(sets[1], int):
-            pass
-        elif length == 2 and isinstance(sets[0], int):
-            sets = [sets[1], sets[0], sets[1]]
-        elif length == 1 and isinstance(sets[0], int):
-            sets = [dflt_set[0], sets[0], dflt_set[2]]
-        else:
-            sets = dflt_set
-
-    if not options:
-        opts = dflt_opt
-    else:
-        opts = []
-        for i in range(4):
-            try:
-                if options[i] == "y":
-                    opts.append(True)
-                else:
-                    opts.append(False)
-            except IndexError:
-                opts.append(dflt_opt[i])
-
-    return (sets, opts)
+    """Parse note settings field. Returns context_mode int (0/1/2)."""
+    field = strip_html(html).strip()
+    if not field:
+        return config["synced"].get("context_mode", MODE_PREVIOUS)
+    try:
+        mode = int(field)
+        if mode in (MODE_NONE, MODE_PREVIOUS, MODE_ALL):
+            return mode
+    except ValueError:
+        pass
+    # Legacy compat
+    return config["synced"].get("context_mode", MODE_PREVIOUS)
 
 
-def createNoteSettings(setopts):
-    """Create plain text settings string"""
-    set_str = ",".join(str(i) if i is not None else "all" for i in setopts[0])
-    opt_str = ",".join("y" if i else "n" for i in setopts[1])
-    return set_str + " | " + opt_str
+def createNoteSettings(context_mode):
+    """Create plain text settings string."""
+    return str(context_mode)
 
 
 config_defaults = {
     "synced": {
-        "dflts": [1, 1, 0],
-        "dflto": [False, False, False, False],
+        "context_mode": MODE_PREVIOUS,
         "flds": OLC_FLDS,
         "sched": [True, True, False],
         "olmdls": [OLC_MODEL],

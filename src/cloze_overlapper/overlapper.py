@@ -25,7 +25,7 @@ from .utils import warnUser, showTT
 class ClozeOverlapper(object):
     """Reads note, calls ClozeGenerator, writes results back to note"""
 
-    creg = r"(?s)\[\[oc(\d+)::((.*?)(::(.*?))?)?\]\]"
+    creg = r"(?s)\{\{oc(\d+)::((.*?)(::(.*?))?)?\}\}"
 
     def __init__(self, note, markup=False, silent=False, parent=None):
         self.note = note
@@ -66,12 +66,12 @@ class ClozeOverlapper(object):
                         "Please enter at least 1 item to cloze.")
             return False, None
 
-        setopts = parseNoteSettings(self.note[self.flds["st"]])
+        context_mode = parseNoteSettings(self.note[self.flds["st"]])
         maxfields = self.getMaxFields(self.model, self.flds["tx"])
         if maxfields is False:
             return False, None
 
-        gen = ClozeGenerator(setopts, maxfields)
+        gen = ClozeGenerator(context_mode, maxfields)
         fields, full, total = gen.generate(items, formstr, keys)
 
         if fields is None:
@@ -81,10 +81,10 @@ class ClozeOverlapper(object):
             return False, None
         if fields == 0:
             self.showTT("Warning", "This would generate no overlapping clozes at all<br>"
-                        "Please check your cloze-generation settings")
+                        "Please check your input")
             return False, None
 
-        self.updateNote(fields, full, setopts, custom)
+        self.updateNote(fields, full, context_mode, custom)
 
         if not self.silent:
             self.showTT("Info", "Generated %d overlapping clozes" %
@@ -152,10 +152,9 @@ class ClozeOverlapper(object):
             return False
         return actual
 
-    def updateNote(self, fields, full, setopts, custom):
+    def updateNote(self, fields, full, context_mode, custom):
         """Write changes to note"""
         note = self.note
-        options = setopts[1]
         for idx, field in enumerate(fields):
             name = self.flds["tx"] + str(idx+1)
             if name not in note:
@@ -163,13 +162,10 @@ class ClozeOverlapper(object):
                 continue
             note[name] = field if custom else self.processField(field)
 
-        if options[3]:  # no full clozes
-            full = ""
-        else:
-            full = full if custom else self.processField(full)
-        note[self.flds["fl"]] = full
-        note[self.flds["st"]] = createNoteSettings(setopts)
-        mw.col.update_note(note)
+        note[self.flds["fl"]] = ""  # No full card
+        note[self.flds["st"]] = createNoteSettings(context_mode)
+        if note.id:
+            mw.col.update_note(note)
 
     def processField(self, field):
         """Convert field contents back to HTML based on previous markup"""

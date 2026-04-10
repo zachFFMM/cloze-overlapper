@@ -1,6 +1,6 @@
 /*template
 ######## CLOZE OVERLAPPER DEFAULT TEMPLATE START ########
-version: 1.0.0
+version: 2.0.0
 */
 
 /*
@@ -12,85 +12,158 @@ the add-on updates its template.
 /* general card style */
 
 html {
-  /* scrollbar always visible in order to prevent shift when revealing answer*/
+  /* scrollbar always visible in order to prevent shift when revealing answer */
   overflow-y: scroll;
 }
 
 .card {
-  font-family: "Helvetica LT Std", Helvetica, Arial, Sans;
-  font-size: 150%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  font-size: 20px;
+  line-height: 1.5;
   text-align: center;
-  color: black;
-  background-color: white;
+  color: #1a1a1a;
+  background-color: #ffffff;
+  padding: 20px;
+  word-wrap: break-word;
 }
 
 /* general layout */
 
+.front, .back {
+  max-width: 40em;
+  margin: 0 auto;
+}
+
 .text {
   /* center left-aligned text on card */
   display: inline-block;
-  align: center;
   text-align: left;
   margin: auto;
   max-width: 40em;
+  width: 100%;
 }
 
 .hidden {
   /* guarantees a consistent width across front and back */
   font-weight: bold;
   display: block;
-  line-height:0;
+  line-height: 0;
   height: 0;
   overflow: hidden;
   visibility: hidden;
 }
 
 .title {
-  font-weight: bold;
+  font-weight: 600;
   font-size: 1.1em;
   margin-bottom: 1em;
   text-align: center;
+  color: #2c3e50;
 }
 
 /* clozes */
 
 .cloze {
-  /* regular cloze deletion */
+  /* match default Anki cloze style */
   font-weight: bold;
-  color: #0048FF;
+  color: #0000ff;
 }
 
-.card21 #btn-reveal{
+.card21 #btn-reveal {
   /* no need to display reveal btn on last card */
-  display:none;
+  display: none;
 }
 
 /* additional fields */
 
-.extra{
+.extra {
   margin-top: 0.5em;
-  margin: auto;
+  margin-left: auto;
+  margin-right: auto;
   max-width: 40em;
+  text-align: left;
 }
 
-.extra-entry{
+.extra hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 1em 0;
+}
+
+.extra-entry {
   margin-top: 0.8em;
-  font-size: 0.9em;
-  text-align:left;
+  font-size: 0.85em;
+  text-align: left;
 }
 
-.extra-descr{
+.extra-descr {
   margin-bottom: 0.2em;
-  font-weight: bold;
-  font-size: 1em;
+  font-weight: 600;
+  font-size: 0.95em;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
+
+/* reveal button */
 
 #btn-reveal {
-  font-size: 0.5em;
+  display: inline-block;
+  font-size: 0.85em;
+  font-weight: 500;
+  padding: 8px 20px;
+  margin: 10px 0;
+  color: #fff;
+  background-color: #0077cc;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+#btn-reveal:hover {
+  background-color: #005fa3;
+}
+
+#btn-reveal:active {
+  background-color: #004c85;
 }
 
 .mobile #btn-reveal {
-  font-size: 0.8em;
+  font-size: 1em;
+  padding: 10px 24px;
+}
+
+/* dark mode (Anki convention) */
+
+.night_mode .card {
+  color: #e0e0e0;
+  background-color: #1e1e1e;
+}
+
+.night_mode .title {
+  color: #b0c4de;
+}
+
+.night_mode .cloze {
+  color: #7eb8ff;
+}
+
+.night_mode .extra hr {
+  border-top-color: #444;
+}
+
+.night_mode .extra-descr {
+  color: #aaa;
+}
+
+.night_mode #btn-reveal {
+  background-color: #1a6fb5;
+}
+
+.night_mode #btn-reveal:hover {
+  background-color: #1585d6;
 }
 
 /*

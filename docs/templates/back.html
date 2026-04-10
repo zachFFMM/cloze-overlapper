@@ -67,7 +67,7 @@ the add-on updates its template.
     // Remove cloze syntax from revealed hint
     var hint = document.getElementById("original");
     if (hint) {
-        var html = hint.innerHTML.replace(/\[\[oc(\d+)::(.*?)(::(.*?))?\]\]/mg,
+        var html = hint.innerHTML.replace(/\{\{oc(\d+)::(.*?)(::(.*?))?\}\}/mg,
             "<span class='cloze'>$2</span>");
         hint.innerHTML = html
     };

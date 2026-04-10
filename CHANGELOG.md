@@ -6,6 +6,39 @@ This is a fork maintained by [zachFFMM](https://github.com/zachFFMM). Originally
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-04-10
+
+### Breaking Changes
+
+- **New cloze syntax**: Changed from `[[oc1::text]]` to `{{oc1::text}}` to match standard Anki cloze conventions
+- **Simplified card generation**: Replaced complex before/prompt/after algorithm with simple incremental reveal pattern
+- **Simplified settings**: Replaced 7 settings (3 spinboxes + 4 checkboxes) with 2 checkboxes: "Show previous answers" and "Show all context"
+- **No more Full card**: The extra "Full" cloze card is no longer generated. N items = exactly N cards.
+
+### Added
+
+- **Anki 25.x / Python 3.13 compatibility**: Updated vendored importer for PEP 451 (find_spec/exec_module)
+- **Show all context option**: New setting to reveal all items except the current cloze (both previous and future)
+- **Auto-generate on add**: Overlapping clozes are automatically generated when adding a note — no manual button click needed
+- **Hidden internal fields**: Text1-20, Full, and Settings fields are hidden in the editor. Users only see Original, Title, Remarks, Sources.
+- **Dark mode support**: Card styling includes `.nightMode` CSS for Anki's dark theme
+- **Generate button reworked**: Now works like standard Anki cloze — highlight text, click to wrap in `{{oc1::}}`, highlight next, click for `{{oc2::}}`
+- **Remove button reworked**: Strips all `{{oc...}}` markers from all fields at once
+
+### Fixed
+
+- Runtime crash when generating clozes on new (unsaved) notes (`No such note: '0'`)
+- `editor.widget` crash on Anki 25.x that prevented all toolbar buttons from appearing
+- `_addCards` monkey-patch not being called (Anki 25.x calls `_add_current_note` instead)
+- V3 scheduler tooltip firing on every profile open
+- Legacy JS function calls (`focusField`, `saveField`, `wrap`) guarded for modern Anki editor
+- `editorSaveThen` now handles missing `saveNow` method
+
+### Changed
+
+- Card styling modernized — clean layout matching standard Anki cloze look
+- All monkey-patches guarded with `hasattr` for forward compatibility
+
 ## [0.4.0-alpha.0] - 2019-02-01
 
 ### Changed
@@ -158,7 +191,8 @@ First public pre-release.
 Early version of the add-on for internal use.
 
 
-[Unreleased]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.4.0-alpha.0...HEAD
+[Unreleased]: https://github.com/zachFFMM/cloze-overlapper/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.4.0-alpha.0...v1.0.0
 [0.4.0-alpha.0]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.4.0-dev.3...v0.4.0-alpha.0
 [0.4.0-dev.3]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.4.0-dev.2...v0.4.0-dev.3
 [0.4.0-dev.2]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.4.0-dev.1...v0.4.0-dev.2

@@ -12,6 +12,7 @@ Note settings dialog
 from aqt.qt import QDialog
 
 from ..config import config, parseNoteSettings, createNoteSettings
+from ..config import MODE_NONE, MODE_PREVIOUS, MODE_ALL
 
 from .forms import settings_note
 
@@ -31,45 +32,20 @@ class OlcOptionsNote(QDialog):
         self.setupValues()
 
     def setupValues(self):
-        self.ed.web.eval("saveField('key');")
-        setopts = parseNoteSettings(self.note[self.flds["st"]])
-        settings, options = setopts
-        before, prompt, after = settings
-        if before is None:
-            before = -1
-        if after is None:
-            after = -1
-        self.f.sb_before.setValue(before)
-        self.f.sb_after.setValue(after)
-        self.f.sb_cloze.setValue(prompt)
-        for idx, cb in enumerate((self.f.cb_ncf, self.f.cb_ncl,
-                                  self.f.cb_incr, self.f.cb_gfc)):
-            cb.setChecked(options[idx])
+        mode = parseNoteSettings(self.note[self.flds["st"]])
+        if mode == MODE_NONE:
+            self.f.rb_none.setChecked(True)
+        elif mode == MODE_ALL:
+            self.f.rb_all.setChecked(True)
+        else:
+            self.f.rb_previous.setChecked(True)
 
     def onAccept(self):
-        before = self.f.sb_before.value()
-        after = self.f.sb_after.value()
-        prompt = self.f.sb_cloze.value()
+        mode = self.f.bg_mode.checkedId()
+        self.note[self.flds["st"]] = createNoteSettings(mode)
 
-        before = before if before != -1 else None
-        after = after if after != -1 else None
-
-        settings = [before, prompt, after]
-        options = [i.isChecked() for i in (
-            self.f.cb_ncf, self.f.cb_ncl,
-            self.f.cb_incr, self.f.cb_gfc)]
-        setopts = (settings, options)
-        settings_fld = createNoteSettings(setopts)
-        self.note[self.flds["st"]] = settings_fld
-
-        self.ed.loadNote()
-
-        if self.ed.currentField is not None:
-            self.ed.web.eval("focusField(%d);" % self.ed.currentField)
-        else:
-            self.ed.web.eval("focusField(0);")
-
-        self.ed.onOlClozeButton(parent=self.parent_window)
+        if hasattr(self.ed, 'loadNote'):
+            self.ed.loadNote()
 
         self.close()
 

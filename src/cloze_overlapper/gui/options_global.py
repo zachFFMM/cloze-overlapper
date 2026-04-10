@@ -14,7 +14,7 @@ from aqt import mw
 
 from ..libaddon.gui.about import get_about_string
 
-from ..config import config
+from ..config import config, MODE_NONE, MODE_PREVIOUS, MODE_ALL
 from ..consts import *
 
 from .forms import settings_global
@@ -31,8 +31,6 @@ class OlcOptionsGlobal(QDialog):
         self.fndict = list(zip((i for i in OLC_FIDS_PRIV if i != "tx"),
             [self.f.le_og, self.f.le_st, self.f.le_fl]))
         self.fsched = (self.f.cb_ns_new, self.f.cb_ns_rev, self.f.cb_sfc)
-        self.fopts = (self.f.cb_ncf, self.f.cb_ncl,
-                      self.f.cb_incr, self.f.cb_gfc)
         self.setupValues(config["synced"])
 
     def setupUI(self):
@@ -44,17 +42,17 @@ class OlcOptionsGlobal(QDialog):
         self.f.htmlAbout.setHtml(about_string)
 
     def setupValues(self, values):
-        before, prompt, after = values["dflts"]
-        before = before if before is not None else -1
-        after = after if after is not None else -1
-        self.f.sb_before.setValue(before)
-        self.f.sb_after.setValue(after)
-        self.f.sb_cloze.setValue(prompt)
+        mode = values.get("context_mode", MODE_PREVIOUS)
+        if mode == MODE_NONE:
+            self.f.rb_none.setChecked(True)
+        elif mode == MODE_ALL:
+            self.f.rb_all.setChecked(True)
+        else:
+            self.f.rb_previous.setChecked(True)
+
         self.f.le_model.setText(",".join(values["olmdls"]))
         for idx, cb in enumerate(self.fsched):
             cb.setChecked(values["sched"][idx])
-        for idx, cb in enumerate(self.fopts):
-            cb.setChecked(values["dflto"][idx])
         for key, fnedit in self.fndict:
             fnedit.setText(values["flds"][key])
 
@@ -66,14 +64,8 @@ class OlcOptionsGlobal(QDialog):
             from aqt.utils import showInfo
             showInfo("Could not rename fields: %s" % str(e))
             return
-        before = self.f.sb_before.value()
-        after = self.f.sb_after.value()
-        prompt = self.f.sb_cloze.value()
-        before = before if before != -1 else None
-        after = after if after != -1 else None
-        config["synced"]['dflts'] = [before, prompt, after]
+        config["synced"]["context_mode"] = self.f.bg_mode.checkedId()
         config["synced"]['sched'] = [i.isChecked() for i in self.fsched]
-        config["synced"]["dflto"] = [i.isChecked() for i in self.fopts]
         config["synced"]["olmdls"] = [n.strip() for n in self.f.le_model.text().split(",") if n.strip()]
         config.save(reset=reset_req)
         self.close()

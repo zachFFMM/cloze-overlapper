@@ -20,8 +20,11 @@ __all__ = [
 
 class VersionSpecificImporter:
     """
-    A PEP 302 meta path importer for finding the right vendored package
+    A meta path importer for finding the right vendored package
     among bundled packages specific to Anki 2.1 and packages common to both.
+
+    Updated for Python 3.12+ compatibility (uses find_spec instead of
+    the deprecated find_module/load_module PEP 302 API).
     """
 
     module_dir = "anki21"
@@ -65,6 +68,40 @@ class VersionSpecificImporter:
                 "this warning, consult the packager of your "
                 "distribution.".format(**locals())
             )
+
+    def find_spec(self, fullname, path, target=None):
+        """Python 3.4+ importlib finder interface."""
+        from importlib.util import spec_from_loader
+        root, base, tgt = fullname.partition(self.root_name + '.')
+        if root:
+            return None
+        if not any(map(tgt.startswith, self.managed_imports)):
+            return None
+        return spec_from_loader(fullname, self)
+
+    def create_module(self, spec):
+        return None
+
+    def exec_module(self, module):
+        fullname = module.__name__
+        root, base, tgt = fullname.partition(self.root_name + '.')
+        for prefix in self.search_path:
+            try:
+                extant = prefix + tgt
+                __import__(extant)
+                mod = sys.modules[extant]
+                sys.modules[fullname] = mod
+                module.__dict__.update(mod.__dict__)
+                del sys.modules[extant]
+                return
+            except ImportError:
+                pass
+        raise ImportError(
+            "The '{tgt}' package is required; "
+            "normally this is bundled with this add-on so if you get "
+            "this warning, consult the packager of your "
+            "distribution.".format(**locals())
+        )
 
     def install(self):
         if self not in sys.meta_path:
