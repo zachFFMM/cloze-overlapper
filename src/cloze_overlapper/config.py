@@ -24,6 +24,8 @@ def parseNoteSettings(html):
     """Return note settings. Fall back to defaults if necessary."""
     options, settings, opts, sets = None, None, None, None
     dflt_set, dflt_opt = config["synced"]["dflts"], config["synced"]["dflto"]
+    if not html:
+        return (dflt_set, dflt_opt)
     field = strip_html(html)
 
     lines = field.replace(" ", "").split("|")

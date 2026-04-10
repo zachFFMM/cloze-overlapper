@@ -75,6 +75,7 @@ https://ankiweb.net/shared/info/969733775
 // Scroll to cloze
 function scrollToCloze () {
     const cloze1 = document.getElementsByClassName("cloze")[0];
+    if (!cloze1) return;
     const rect = cloze1.getBoundingClientRect();
     const absTop = rect.top + window.pageYOffset;
     const absBot = rect.bottom + window.pageYOffset;
@@ -172,6 +173,7 @@ if (hint) {
 // Scroll to cloze
 function scrollToCloze () {
     const cloze1 = document.getElementsByClassName("cloze")[0];
+    if (!cloze1) return;
     const rect = cloze1.getBoundingClientRect();
     const absTop = rect.top + window.pageYOffset;
     const absBot = rect.bottom + window.pageYOffset;

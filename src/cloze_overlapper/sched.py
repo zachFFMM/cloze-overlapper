@@ -24,7 +24,8 @@ from .template import checkModel
 
 def myBurySiblings(self, card, _old):
     """Skip sibling burying for our note type if so configured"""
-    if not checkModel(card.note_type(), fields=False, notify=False):
+    model = card.note_type()
+    if not model or not checkModel(model, fields=False, notify=False):
         return _old(self, card)
     sched_conf = mw.col.conf.get("olcloze", {}).get("sched", None)
     if not sched_conf:
@@ -49,7 +50,8 @@ def initializeScheduler():
         if hasattr(sched_cls, '_burySiblings'):
             original = sched_cls._burySiblings
             def patched(self, card):
-                if not checkModel(card.note_type(), fields=False, notify=False):
+                model = card.note_type()
+                if not model or not checkModel(model, fields=False, notify=False):
                     return original(self, card)
                 sched_conf = mw.col.conf.get("olcloze", {}).get("sched", None)
                 if not sched_conf:

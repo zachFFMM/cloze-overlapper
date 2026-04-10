@@ -266,7 +266,10 @@ def onAddNote(addcards, note, _old):
         return note
     maxfields = ClozeOverlapper.getMaxFields(
         note.note_type(), config["synced"]["flds"]["tx"])
-    last = note.cards()[-1]
+    cards = note.cards()
+    if not cards:
+        return note
+    last = cards[-1]
     if last.ord == maxfields:  # is full cloze (ord starts at 0)
         mw.col.sched.suspend_cards([last.id])
     return note
