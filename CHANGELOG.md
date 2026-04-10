@@ -2,13 +2,7 @@
 
 All notable changes to Cloze Overlapper will be documented here. You can click on each release number to be directed to a detailed log of all code commits for that particular release. The download links will direct you to the GitHub release page, allowing you to manually install a release if you want.
 
-If you enjoy Cloze Overlapper, please consider supporting my work on Patreon, or by buying me a cup of coffee :coffee::
-
-<p align="center">
-<a href="https://www.patreon.com/glutanimate" rel="nofollow" title="Support me on Patreon 😄"><img src="https://glutanimate.com/logos/patreon_button.svg"></a>      <a href="https://ko-fi.com/X8X0L4YV" rel="nofollow" title="Buy me a coffee 😊"><img src="https://glutanimate.com/logos/kofi_button.svg"></a>
-</p>
-
-:heart: My heartfelt thanks goes out to everyone who has supported this add-on through their tips, contributions, or any other means (you know who you are!). All of this would not have been possible without you. Thank you for being awesome!
+This is a fork maintained by [zachFFMM](https://github.com/zachFFMM). Originally created by [Glutanimate](https://glutanimate.com/).
 
 ## [Unreleased]
 
@@ -164,18 +158,18 @@ First public pre-release.
 Early version of the add-on for internal use.
 
 
-[Unreleased]: https://github.com/glutanimate/cloze-overlapper/compare/v0.4.0-alpha.0...HEAD
-[0.4.0-alpha.0]: https://github.com/glutanimate/cloze-overlapper/compare/v0.4.0-dev.3...v0.4.0-alpha.0
-[0.4.0-dev.3]: https://github.com/glutanimate/cloze-overlapper/compare/v0.4.0-dev.2...v0.4.0-dev.3
-[0.4.0-dev.2]: https://github.com/glutanimate/cloze-overlapper/compare/v0.4.0-dev.1...v0.4.0-dev.2
-[0.4.0-dev.1]: https://github.com/glutanimate/cloze-overlapper/compare/v0.3.0...v0.4.0-dev.1
-[0.3.0]: https://github.com/glutanimate/cloze-overlapper/compare/v0.2.1...v0.3.0
-[0.2.1]: https://github.com/glutanimate/cloze-overlapper/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/glutanimate/cloze-overlapper/compare/v0.1.2...v0.2.0
-[0.1.2]: https://github.com/glutanimate/cloze-overlapper/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/glutanimate/cloze-overlapper/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/glutanimate/cloze-overlapper/compare/v0.1.0...v0.1.1
-[0.0.1]: https://github.com/glutanimate/cloze-overlapper/compare/v0.1.0...v0.1.1
+[Unreleased]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.4.0-alpha.0...HEAD
+[0.4.0-alpha.0]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.4.0-dev.3...v0.4.0-alpha.0
+[0.4.0-dev.3]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.4.0-dev.2...v0.4.0-dev.3
+[0.4.0-dev.2]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.4.0-dev.1...v0.4.0-dev.2
+[0.4.0-dev.1]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.3.0...v0.4.0-dev.1
+[0.3.0]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.2.1...v0.3.0
+[0.2.1]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.1.2...v0.2.0
+[0.1.2]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.1.0...v0.1.1
+[0.0.1]: https://github.com/zachFFMM/cloze-overlapper/compare/v0.1.0...v0.1.1
 
 
 -----
