@@ -173,6 +173,15 @@ card_css = """\
   color: lightblue;
 }
 
+.olc-context {
+  color: inherit;
+  font-weight: normal;
+}
+
+.nightMode .olc-context {
+  color: inherit;
+}
+
 hr {
   border: none;
   border-top: 1px solid #ccc;

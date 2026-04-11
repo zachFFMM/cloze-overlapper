@@ -40,12 +40,19 @@ class OlcOptionsNote(QDialog):
         else:
             self.f.rb_previous.setChecked(True)
 
-    def onAccept(self):
-        mode = self.f.bg_mode.checkedId()
-        self.note[self.flds["st"]] = createNoteSettings(mode)
+    def _getSelectedMode(self):
+        """Read mode from radio buttons directly (checkedId unreliable for id=0)"""
+        if self.f.rb_none.isChecked():
+            return MODE_NONE
+        elif self.f.rb_all.isChecked():
+            return MODE_ALL
+        return MODE_PREVIOUS
 
-        if hasattr(self.ed, 'loadNote'):
-            self.ed.loadNote()
+    def onAccept(self):
+        mode = self._getSelectedMode()
+        # Store mode as Python attribute to survive web↔note sync issues.
+        self.note._olc_pending_mode = mode
+        self.note[self.flds["st"]] = createNoteSettings(mode)
 
         self.close()
 

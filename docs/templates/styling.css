@@ -70,6 +70,11 @@ html {
   color: #0000ff;
 }
 
+.olc-context {
+  color: inherit;
+  font-weight: normal;
+}
+
 .card21 #btn-reveal {
   /* no need to display reveal btn on last card */
   display: none;
@@ -148,6 +153,10 @@ html {
 
 .night_mode .cloze {
   color: #7eb8ff;
+}
+
+.night_mode .olc-context {
+  color: inherit;
 }
 
 .night_mode .extra hr {

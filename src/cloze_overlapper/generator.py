@@ -19,10 +19,17 @@ class ClozeGenerator(object):
     """Cloze generator — incremental reveal pattern"""
 
     cformat = "{{c%i::%s}}"
+    context_wrap = '<span class="olc-context">%s</span>'
 
     def __init__(self, context_mode, maxfields):
         self.maxfields = maxfields
         self.context_mode = context_mode
+
+    def _wrap_context(self, text):
+        """Wrap a context item in styling span"""
+        if isinstance(text, (list, tuple)):
+            return [self.context_wrap % t for t in text]
+        return self.context_wrap % text
 
     def generate(self, items, original=None, keys=None):
         """Generate overlapping cloze fields.
@@ -51,13 +58,13 @@ class ClozeGenerator(object):
                 elif item_idx < card_idx:
                     # Previous item
                     if self.context_mode in (MODE_PREVIOUS, MODE_ALL):
-                        snippets.append(clean)
+                        snippets.append(self._wrap_context(clean))
                     else:
                         snippets.append("...")
                 else:
                     # Future item
                     if self.context_mode == MODE_ALL:
-                        snippets.append(clean)
+                        snippets.append(self._wrap_context(clean))
                     else:
                         snippets.append("...")
             field = self._format_snippets(snippets, original, keys)

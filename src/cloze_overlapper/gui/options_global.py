@@ -56,6 +56,14 @@ class OlcOptionsGlobal(QDialog):
         for key, fnedit in self.fndict:
             fnedit.setText(values["flds"][key])
 
+    def _getSelectedMode(self):
+        """Read mode from radio buttons directly (checkedId unreliable for id=0)"""
+        if self.f.rb_none.isChecked():
+            return MODE_NONE
+        elif self.f.rb_all.isChecked():
+            return MODE_ALL
+        return MODE_PREVIOUS
+
     def onAccept(self):
         reset_req = False
         try:
@@ -64,7 +72,7 @@ class OlcOptionsGlobal(QDialog):
             from aqt.utils import showInfo
             showInfo("Could not rename fields: %s" % str(e))
             return
-        config["synced"]["context_mode"] = self.f.bg_mode.checkedId()
+        config["synced"]["context_mode"] = self._getSelectedMode()
         config["synced"]['sched'] = [i.isChecked() for i in self.fsched]
         config["synced"]["olmdls"] = [n.strip() for n in self.f.le_model.text().split(",") if n.strip()]
         config.save(reset=reset_req)

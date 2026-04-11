@@ -267,11 +267,18 @@ def onRemoveClozes(editor):
 
 @editorSaveThen
 def onOlOptionsButton(self):
-    """Invoke note-specific options dialog"""
+    """Invoke note-specific options dialog, then regenerate clozes"""
     if not checkModel(self.note.note_type()):
         return False
     options = OlcOptionsNote(self.parentWindow)
     options.exec()
+
+    # Regenerate clozes with the new mode so all cards update immediately
+    if hasattr(self.note, '_olc_pending_mode'):
+        overlapper = ClozeOverlapper(self.note, silent=False, parent=self.parentWindow)
+        ret, total = overlapper.add()
+        if ret:
+            refreshEditor(self)
 
 
 @editorSaveThen
@@ -302,19 +309,31 @@ def onAddCards(self, _old):
     if not note or not checkModel(note.note_type(), notify=False):
         return _old(self)
 
-    overlapper = ClozeOverlapper(editor.note, silent=True)
-    ret, total = overlapper.add()
+    def doGenerate():
+        # Save pending mode before saveNow can overwrite the Settings field
+        pending_mode = getattr(editor.note, '_olc_pending_mode', None)
 
-    if ret is False:
-        return
+        overlapper = ClozeOverlapper(editor.note, silent=True)
+        # Restore pending mode in case saveNow cleared it via note reload
+        if pending_mode is not None and not hasattr(editor.note, '_olc_pending_mode'):
+            editor.note._olc_pending_mode = pending_mode
 
-    refreshEditor(editor)
+        ret, total = overlapper.add()
 
-    oldret = _old(self)
-    if total:
-        showTT("Info", "Added %d overlapping cloze cards" % total, period=1000)
+        if ret is False:
+            return
 
-    return oldret
+        refreshEditor(editor)
+
+        _old(self)
+        if total:
+            showTT("Info", "Added %d overlapping cloze cards" % total, period=1000)
+
+    # Sync web editor → note before generating (ensures Original field is current)
+    if hasattr(editor, 'saveNow'):
+        editor.saveNow(doGenerate)
+    else:
+        doGenerate()
 
 
 def onAddNote(addcards, note, _old):

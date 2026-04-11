@@ -66,7 +66,13 @@ class ClozeOverlapper(object):
                         "Please enter at least 1 item to cloze.")
             return False, None
 
-        context_mode = parseNoteSettings(self.note[self.flds["st"]])
+        # Check for pending mode from options dialog (bypasses web editor sync)
+        pending = getattr(self.note, '_olc_pending_mode', None)
+        if pending is not None:
+            context_mode = pending
+            del self.note._olc_pending_mode
+        else:
+            context_mode = parseNoteSettings(self.note[self.flds["st"]])
         maxfields = self.getMaxFields(self.model, self.flds["tx"])
         if maxfields is False:
             return False, None
