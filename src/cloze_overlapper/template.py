@@ -9,6 +9,8 @@
 Manages note type and templates
 """
 
+import uuid
+
 from anki.consts import MODEL_CLOZE
 
 from aqt import mw
@@ -286,6 +288,7 @@ def addModel(col):
     model['css'] = card_css
     model['sortf'] = 1
     models.add_template(model, template)
+    model["crowdanki_uuid"] = str(uuid.uuid4())
     models.add(model)
     return model
 
@@ -302,7 +305,38 @@ def updateTemplate(col):
     return model
 
 
+def _autoRegisterOverlapModels(col):
+    """Scan for note types that look like overlap models and add their names
+    to config["synced"]["olmdls"] so editing them doesn't warn the user."""
+    known = set(config["synced"]["olmdls"])
+    flds_cfg = config["synced"]["flds"]
+    required_singletons = [flds_cfg[fid] for fid in OLC_FIDS_PRIV if fid != "tx"]
+    tx_name = flds_cfg["tx"]
+
+    added = False
+    for model in col.models.all():
+        name = model["name"]
+        if name in known:
+            continue
+        field_names = {f["name"] for f in model["flds"]}
+        if not all(f in field_names for f in required_singletons):
+            continue
+        if not all(tx_name + str(i) in field_names for i in range(1, 4)):
+            continue
+        known.add(name)
+        added = True
+
+    if added:
+        config["synced"]["olmdls"] = sorted(known)
+        config.save()
+
+
 def initializeModels():
     model = mw.col.models.by_name(OLC_MODEL)
     if not model:
         model = addModel(mw.col)
+        return
+    if "crowdanki_uuid" not in model:
+        model["crowdanki_uuid"] = str(uuid.uuid4())
+        mw.col.models.save(model)
+    _autoRegisterOverlapModels(mw.col)
