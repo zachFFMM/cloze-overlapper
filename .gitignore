@@ -45,3 +45,9 @@ resources/icons/optional
 # Anki
 src/*/meta.json
 src/*/manifest.json
+# R
+.Rhistory
+# Claude Code
+.claude/
+# Diagnostic log from addon's sched.py
+olc_sched_debug.log
