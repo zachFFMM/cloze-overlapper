@@ -27,6 +27,7 @@ from .template import checkModel
 from .config import config
 from .consts import OLC_MAX
 from .utils import showTT
+from .sched import disableBuryingForNote, setSequentialPositions
 
 
 # Hotkey definitions
@@ -283,19 +284,14 @@ def onOlOptionsButton(self):
 
 @editorSaveThen
 def onOlClozeButton(editor, markup=None, parent=None):
-    """Wrap selected text in {{ocN::}} markers, like standard cloze button"""
+    """Generate overlapping clozes from the Original field (plain text or manually typed {{oc#::}} markup)."""
     if not checkModel(editor.note.note_type(), fields=False, notify=False):
         return False
-    # Find highest existing oc number across all fields
-    highest = 0
-    for name, val in editor.note.items():
-        m = re.findall(r"\{\{oc(\d+)::", val)
-        if m:
-            highest = max(highest, sorted([int(x) for x in m])[-1])
-    highest += 1
-    highest = max(1, highest)
-    editor.web.eval(
-        "if (typeof wrap !== 'undefined') wrap('{{oc%d::', '}}');" % highest)
+    overlapper = ClozeOverlapper(editor.note, silent=False,
+                                 parent=editor.parentWindow)
+    ret, total = overlapper.add()
+    if ret:
+        refreshEditor(editor)
 
 # ADDCARDS
 
@@ -337,10 +333,15 @@ def onAddCards(self, _old):
 
 
 def onAddNote(addcards, note, _old):
-    """Suspend full cloze card if option active"""
+    """Suspend full cloze card if option active, and disable burying for the deck"""
     note = _old(addcards, note)
     if not note or not checkModel(note.note_type(), fields=False, notify=False):
         return note
+
+    # Ensure sibling burying is disabled and cards are sequentially ordered
+    disableBuryingForNote(note)
+    setSequentialPositions(note)
+
     sched_conf = config["synced"].get("sched", None)
     if not sched_conf or not sched_conf[2]:
         return note
