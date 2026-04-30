@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Suggest an improvement or new capability
 title: ''
 labels: 'enhancement'
 assignees: ''
@@ -9,27 +9,21 @@ assignees: ''
 
 #### Checklist
 
-*Please replace the space inside the brackets with an **x** if the following items apply:*
+- [ ] I'm on the latest version of the add-on
+- [ ] I've searched existing issues to confirm this hasn't been suggested
 
- - [ ] I've verified that I use the latest version of the add-on by redownloading it from AnkiWeb
- - [ ] I've verified that I use the latest version of Anki by checking at https://apps.ankiweb.net#download
- - [ ] I've checked if anyone else suggested this feature before by looking through the issue reports.
+#### Problem
 
-#### Problem case
+What workflow or limitation is this feature meant to address?
 
-*Is your feature request related to a problem? If so, please describe it here.  E.g.: "My workflow is such and such, and this and that would help."* 
+#### Proposed solution
 
+Describe what you'd like to see. What would the behavior look like?
 
+#### Alternatives considered
 
-#### Solution
+Any other approaches you've thought about?
 
-*Concisely describe the solution you would like*
+#### Additional context
 
-
-*Concisely describe alternatives you've considered (if any)*
-
-
-
-#### More information
-
-*Additional context: Add any other context or screenshots about the feature request here.*
+Screenshots, examples, or anything else that helps explain the request.

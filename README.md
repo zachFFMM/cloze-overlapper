@@ -3,90 +3,132 @@
 <h2 align="center">Cloze Overlapper for Anki</h2>
 
 <p align="center">
-<a title="Latest (pre-)release" href="https://github.com/zachFFMM/cloze-overlapper/releases"><img src ="https://img.shields.io/github/release-pre/zachFFMM/cloze-overlapper.svg?colorB=brightgreen"></a>
-<a title="License: GNU AGPLv3" href="https://github.com/zachFFMM/cloze-overlapper/blob/master/LICENSE"><img  src="https://img.shields.io/badge/license-GNU AGPLv3-green.svg"></a>
+<a title="Latest release" href="https://github.com/zachFFMM/cloze-overlapper/releases"><img src="https://img.shields.io/github/release-pre/zachFFMM/cloze-overlapper.svg?colorB=brightgreen"></a>
+<a title="License: GNU AGPLv3" href="https://github.com/zachFFMM/cloze-overlapper/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-GNU%20AGPLv3-green.svg"></a>
 </p>
 
-> List memorization made easy!
+> Sequential memorization, simplified.
 
-This is an add-on for the spaced-repetition flashcard app [Anki](https://apps.ankiweb.net/). It facilitates **memorizing enumerations**, lists, or any other type of sequential information by generating overlapping cloze cards that incrementally reveal each item.
+Cloze Overlapper is an Anki add-on that turns ordered lists, sequences, and enumerations into overlapping cloze cards. Each new item is tested against the context of everything that came before it — no manual card-splitting required.
 
-### Table of Contents <!-- omit in toc -->
+Built for **Anki 2.1.45+ through 25.x** with full Qt6 and Python 3.13 support.
+
+---
+
+### Table of Contents
 
 - [How It Works](#how-it-works)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Settings](#settings)
-- [Building](#building)
-- [License and Credits](#license-and-credits)
+- [Compatibility](#compatibility)
+- [Building from Source](#building-from-source)
+- [Credits](#credits)
+
+---
 
 ### How It Works
 
-Type items using `{{oc1::text}}` syntax in the **Original** field (just like standard Anki cloze, but with `oc` instead of `c`). Each item gets its own card, revealed incrementally:
+Write your list in the **Original** field using `{{oc1::item}}` syntax — the same as standard Anki cloze, but with `oc` instead of `c`:
 
-For `{{oc1::blue}} {{oc2::red}} {{oc3::green}}`:
+```
+{{oc1::blue}} {{oc2::red}} {{oc3::green}}
+```
+
+Three items produces exactly three cards:
 
 | Card | Front | Back |
 |------|-------|------|
-| 1 | `[___]` `...` `...` | `blue` `...` `...` |
-| 2 | `blue` `[___]` `...` | `blue` `red` `...` |
-| 3 | `blue` `red` `[___]` | `blue` `red` `green` |
+| 1 | `[?]` `...` `...` | **blue** `...` `...` |
+| 2 | `blue` `[?]` `...` | `blue` **red** `...` |
+| 3 | `blue` `red` `[?]` | `blue` `red` **green** |
 
-3 items = exactly 3 cards. No extra "full cloze" card.
+Each answer becomes context for the next card. N items = N cards, nothing extra.
+
+---
 
 ### Installation
 
+**Manual:**
+
 1. Download or clone this repository
-2. Copy the contents of `src/cloze_overlapper/` into Anki's `addons21/cloze_overlapper/` folder
+2. Copy the contents of `src/cloze_overlapper/` into Anki's `addons21/` folder:
+   ```
+   addons21/
+   └── cloze_overlapper/   ← paste the contents of src/cloze_overlapper/ here
+   ```
 3. Restart Anki
 
-The add-on will create a **"Cloze (overlapping)"** note type automatically on first run.
+A **"Cloze (overlapping)"** note type is created automatically on first run.
+
+**From a release build:** Download the latest `.ankiaddon` from [Releases](https://github.com/zachFFMM/cloze-overlapper/releases) and double-click to install.
+
+---
 
 ### Usage
 
-1. Select the **"Cloze (overlapping)"** note type
-2. In the **Original** field, type your items using `{{oc1::item}}` syntax
-   - Use the toolbar **generate button** to wrap highlighted text (works like the standard cloze button)
+1. Create a new note and select the **"Cloze (overlapping)"** note type
+2. In the **Original** field, write your items using `{{oc1::...}}` syntax:
+   - Highlight text and click the **Generate** button in the editor toolbar to wrap it automatically (increments the cloze number each time)
    - Or type the syntax manually
-3. Click **Add** — cards are generated automatically
+3. Click **Add** — overlapping cards are generated automatically on save
 
-The internal fields (Text1-20, Settings, Full) are hidden in the editor. You only see Original, Title, Remarks, and Sources.
+The internal fields (Text1–20, Settings, Full) are hidden. You only work with **Original**, **Title**, **Remarks**, and **Sources**.
 
 **Toolbar buttons:**
-- **Generate** (Alt+Shift+C): Wrap selected text in `{{ocN::}}`
-- **Options** (Alt+Shift+O): Per-note cloze settings
-- **Remove** (Alt+Shift+U): Strip all cloze markers from note
+
+| Button | Shortcut | What it does |
+|--------|----------|--------------|
+| Generate | `Alt+Shift+C` | Wrap selected text in `{{ocN::}}` |
+| Options | `Alt+Shift+O` | Open per-note settings |
+| Remove | `Alt+Shift+U` | Strip all cloze markers from the note |
+
+---
 
 ### Settings
 
-Two options available in **Tools → Cloze Overlapper Options** or per-note via the options button:
+Open via **Tools → Cloze Overlapper Options** (global) or the Options toolbar button (per-note).
 
-| Setting | Default | Effect |
-|---------|---------|--------|
-| **Show previous answers** | ON | Previously revealed items shown as context. OFF = all items are blanks. |
-| **Show all context** | OFF | All items except the current cloze are revealed (both previous and future). |
+| Setting | Default | Description |
+|---------|---------|-------------|
+| **Show previous answers** | On | Already-revealed items appear as context on the front of each card |
+| **Show all context** | Off | Every item except the current blank is shown — both before and after |
+
+With both off, all items are blanks on every card (pure recall mode).
+
+---
 
 ### Compatibility
 
-- **Anki**: 2.1.45+ through 25.x
-- **Python**: 3.9 through 3.13
-- **Qt**: Qt5 and Qt6
-- **Platforms**: Windows, macOS, Linux, AnkiMobile, AnkiDroid (cards are standard cloze)
+| | |
+|---|---|
+| **Anki** | 2.1.45 – 25.x |
+| **Python** | 3.9 – 3.13 |
+| **Qt** | Qt5 and Qt6 |
+| **Desktop** | Windows, macOS, Linux |
+| **Mobile** | AnkiMobile, AnkiDroid (cards render as standard Anki cloze) |
 
-### Building
+---
 
-With [Anki add-on builder](https://github.com/glutanimate/anki-addon-builder/) installed:
+### Building from Source
 
-    git clone https://github.com/zachFFMM/cloze-overlapper.git
-    cd cloze-overlapper
-    aab build
+Requires [anki-addon-builder](https://github.com/glutanimate/anki-addon-builder/):
 
-### License and Credits
+```bash
+git clone https://github.com/zachFFMM/cloze-overlapper.git
+cd cloze-overlapper
+pip install aab
+aab build
+```
 
-*Cloze Overlapper* was originally created by [Aristotelis P.](https://glutanimate.com/) (Glutanimate). This fork is maintained by [zachFFMM](https://github.com/zachFFMM) with updates for modern Anki compatibility (2.1.45+ and Qt6).
+The packaged `.ankiaddon` file will appear in `build/`.
 
-With code contributions from: [zjosua](https://github.com/zjosua)
+---
 
-Cloze Overlapper is free and open-source software. The add-on code that runs within Anki is released under the GNU AGPLv3 license, extended by a number of additional terms. For more information please see the [LICENSE](https://github.com/zachFFMM/cloze-overlapper/blob/master/LICENSE) file that accompanied this program.
+### Credits
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY.
+Cloze Overlapper was originally created by [Aristotelis P.](https://glutanimate.com/) (Glutanimate) and is the foundation this fork is built on. This fork is maintained by [zachFFMM](https://github.com/zachFFMM) and updates the add-on for modern Anki (2.1.45+, Qt6, Python 3.13), simplifies the card generation model, and adds dark mode support.
+
+Additional code contributions by [zjosua](https://github.com/zjosua).
+
+Licensed under the [GNU AGPLv3](https://github.com/zachFFMM/cloze-overlapper/blob/master/LICENSE). This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY.
